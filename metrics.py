@@ -3,9 +3,11 @@ import torch.nn as nn
 
 
 class CTCLossFunction(nn.Module):
-    def __init__(self):
+    def __init__(self, blank=0):
         super().__init__()
-        self.ctc_loss = nn.CTCLoss()
+
+        self.blank = blank
+        self.ctc_loss = nn.CTCLoss(blank)
  
         self.total_size = 0
         self.loss_sum = {}
