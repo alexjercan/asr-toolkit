@@ -94,5 +94,9 @@ def print_err_html(r, h, d=None):
             break
 
     html += '</body></html>'
+    err = float(d[len(r)][len(h)]) / len(r) * 100
+
     display(HTML(html))
-    return html
+    print("ERR=%.4f" % (err))
+
+    return html, err
