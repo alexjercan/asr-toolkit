@@ -6,14 +6,13 @@ class CTCLossFunction(nn.Module):
     def __init__(self):
         super().__init__()
         self.ctc_loss = nn.CTCLoss()
-
+ 
         self.total_size = 0
         self.loss_sum = {}
         self.loss_avg = {}
 
     def forward(self, predictions, targets, input_lengths, target_lengths):
-        ctc_loss = self.ctc_loss(predictions, targets,
-                                 input_lengths, target_lengths)
+        ctc_loss = self.ctc_loss(predictions, targets, input_lengths, target_lengths)
 
         loss_val = {}
         loss_val["CTC"] = ctc_loss.item()
@@ -39,10 +38,8 @@ class ASRMetricFunction(nn.Module):
         error_val = {}
         batch_size = len(predictions)
 
-        error_val["WER"] = sum(
-            map(get_word_error_rate, zip(predictions, targets)))
-        error_val["CER"] = sum(
-            map(get_char_error_rate, zip(predictions, targets)))
+        error_val["WER"] = sum(map(get_word_error_rate, zip(predictions, targets)))
+        error_val["CER"] = sum(map(get_char_error_rate, zip(predictions, targets)))
         self.total_size += batch_size
 
         self.error_avg = avg_error(self.error_sum, error_val, self.total_size)
@@ -50,7 +47,7 @@ class ASRMetricFunction(nn.Module):
 
     def show(self):
         error = self.error_avg
-        format_str = ("\n======WAV2VEC2========\nWER=%.4f\tCER=%.4f\n")
+        format_str = ("\n======ASRModel========\nWER=%.4f\tCER=%.4f\n")
         return format_str % (error["WER"], error["CER"])
 
 
@@ -64,7 +61,7 @@ def get_char_error_rate(pairs):
 
 def get_word_error_rate(pairs):
     target, changed = pairs
-    r = target.split("|")
+    r = target.split(" ")
     h = changed.split(" ")
     d = get_sentence_error(r, h)
     return float(d[len(r)][len(h)]) / len(r) * 100
@@ -74,7 +71,7 @@ def get_word_error_rate(pairs):
 def get_sentence_error(reference, hypothesis):
     r = reference
     h = hypothesis
-    
+
     d = np.zeros((len(r) + 1) * (len(h) + 1), dtype=np.uint16)
     d = d.reshape((len(r) + 1, len(h) + 1))
     for i in range(len(r) + 1):

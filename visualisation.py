@@ -1,8 +1,8 @@
 import torch
 
 import matplotlib.pyplot as plt
-from IPython.display import Audio, display, HTML
-from metrics import get_sentence_error
+from IPython.display import display, Audio, HTML
+from .metrics import get_sentence_error
 
 
 def play_audio(waveform, sample_rate):
@@ -60,15 +60,13 @@ def plot_waveform(waveform, sample_rate, title="Waveform", xlim=None, ylim=None)
     plt.show(block=False)
 
 
-# Reference: https://github.com/imalic3/python-word-error-rate
-def print_err_html(reference, hypothesis, d=None):
-    r = reference
-    h = hypothesis
+# Reference: https://github.com/imalic3/python-word-error-rate    
+def print_err_html(r, h, d=None):
+    x = len(r)
+    y = len(h)
 
     if d is None:
         d = get_sentence_error(r, h)
-    x = len(r)
-    y = len(h)
 
     html = '<html><body><head><meta charset="utf-8"></head>' \
            '<style>.g{background-color:#0080004d}.r{background-color:#ff00004d}.y{background-color:#ffa50099}</style>'
