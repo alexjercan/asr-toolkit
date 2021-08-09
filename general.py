@@ -50,3 +50,8 @@ def tensor_to_string(tensor, target_lengths, labels):
         result.append("".join([labels[t.item()] for t in tensor[s:s+target_lengths[i]]]))
         s = s + target_lengths[i]
     return result
+
+
+def pad_last(tensor):
+    maxlen = max(map(lambda t: t.shape[-1], tensor))
+    return list(map(lambda t: F.pad(t, (0, maxlen - t.shape[-1])), tensor))
