@@ -105,7 +105,7 @@ class QuartzNet(nn.Module):
 
                 transcriptions = self.ctc_decoder_predictions_tensor(greedy_predictions, predictions_len=encoded_len)
 
-            metric_fn(tensor_to_string(utterance, target_lengths), transcriptions)
+            metric_fn(tensor_to_string(utterance, target_lengths), transcriptions, self.labels)
 
             loop.set_postfix(loss=loss_fn.show())
         loop.close()
