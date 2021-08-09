@@ -1,7 +1,6 @@
 import os
 import torch
 import torchaudio
-import torch.nn.functional as F
 
 from torch.utils.data import Dataset, DataLoader, ConcatDataset
 from .general import pad_last
@@ -20,7 +19,7 @@ class LibriSpeechDataset(Dataset):
         return  len(self.dataset)
 
     def __getitem__(self, n):
-        waveform, sample_rate, utterance, speaker_id, chapter_id, utterance_id = self.dataset[n]
+        waveform, _, utterance, _, _, _ = self.dataset[n]
 
         if self.transform is not None:
             waveform = self.transform(waveform)
