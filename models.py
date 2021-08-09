@@ -88,7 +88,7 @@ class QuartzNet(nn.Module):
 
             loop.set_postfix(loss=loss_fn.show(), epoch=epoch_idx)
         loop.close()
-        self.test_model(val_dataloader, metric_fn)
+        return loss_fn.loss_avg, self.test_model(val_dataloader, metric_fn)
 
     def test_model(self, dataloader, metric_fn):
         self.eval()
@@ -110,6 +110,7 @@ class QuartzNet(nn.Module):
 
             loop.set_postfix(loss=loss_fn.show())
         loop.close()
+        return loss_fn.loss_avg
 
     def inference(self, input_value, input_value_length):
         self.eval()
@@ -158,7 +159,7 @@ class Wav2Vec2(nn.Module):
 
             loop.set_postfix(loss=loss_fn.show(), epoch=epoch_idx)
         loop.close()
-        self.test_model(val_dataloader, metric_fn)
+        return loss_fn.loss_avg, self.test_model(val_dataloader, metric_fn)
 
     def test_model(self, dataloader, metric_fn):
         self.eval()
@@ -181,6 +182,7 @@ class Wav2Vec2(nn.Module):
 
             loop.set_postfix(loss=loss_fn.show(), epoch=0)
         loop.close()
+        return loss_fn.loss_avg
 
     def inference(self, input_value):
         self.eval()
