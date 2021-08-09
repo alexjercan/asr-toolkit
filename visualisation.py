@@ -60,7 +60,7 @@ def plot_waveform(waveform, sample_rate, title="Waveform", xlim=None, ylim=None)
     plt.show(block=False)
 
 
-# Reference: https://github.com/imalic3/python-word-error-rate    
+# Reference: https://github.com/imalic3/python-word-error-rate
 def print_err_html(r, h, d=None):
     x = len(r)
     y = len(h)

@@ -8,7 +8,7 @@ class CTCLossFunction(nn.Module):
 
         self.blank = blank
         self.ctc_loss = nn.CTCLoss(blank)
- 
+
         self.total_size = 0
         self.loss_sum = {}
         self.loss_avg = {}

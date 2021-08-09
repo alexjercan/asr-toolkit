@@ -41,3 +41,12 @@ def save_checkpoint(model, dir_checkpoints, file_name):
         'state_dict': model.state_dict(),
     }
     torch.save(checkpoint, output_path)
+
+
+def tensor_to_string(tensor, target_lengths, labels):
+    result = []
+    s = 0
+    for i in range(target_lengths.shape[0]):
+        result.append("".join([labels[t.item()] for t in tensor[s:s+target_lengths[i]]]))
+        s = s + target_lengths[i]
+    return result
