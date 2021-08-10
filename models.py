@@ -1,11 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-
-from tqdm import tqdm
-
-from .general import tensors_to_device, tensor_to_string
-from .metrics import CTCLossFunction
 
 
 class GreedyDecoder(nn.Module):
@@ -46,17 +40,14 @@ class GreedyDecoder(nn.Module):
 
 
 class QuartzNet(nn.Module):
-    def __init__(self, nemo_model, labels, blank):
+    def __init__(self, nemo_model, decoder):
         super(QuartzNet, self).__init__()
 
         self.preprocessor = nemo_model.preprocessor
         self.encoder = nemo_model.encoder
         self.decoder = nemo_model.decoder
 
-        self.ctc_decoder_predictions_tensor = GreedyDecoder(labels, blank)
-
-        self.labels = labels
-        self.blank = blank
+        self.ctc_decoder_predictions_tensor = decoder
 
     def forward(self, input_signal, input_signal_length=None):
         processed_signal, processed_signal_length = self.preprocessor(input_signal=input_signal, length=input_signal_length)
@@ -66,51 +57,6 @@ class QuartzNet(nn.Module):
         greedy_predictions = log_probs.argmax(dim=-1, keepdim=False)
 
         return log_probs, encoded_len, greedy_predictions
-
-    def train_model(self, train_dataloader, val_dataloader, metric_fn, optimizer, scaler, epoch_idx):
-        self.train()
-        device = next(self.parameters()).device
-
-        loss_fn = CTCLossFunction(blank=self.blank)
-        loop = tqdm(train_dataloader, position=0, leave=True)
-
-        for _, tensors in enumerate(loop):
-            valid_lengths, waveform, target_lengths, utterance = tensors_to_device(tensors, device)
-
-            log_probs, encoded_len, _ = self.forward(waveform, valid_lengths)
-            encoded_len = encoded_len.clamp_max(log_probs.shape[1])
-            loss = loss_fn(log_probs.permute(1, 0, 2), utterance, encoded_len, target_lengths)
-
-            optimizer.zero_grad()
-            scaler.scale(loss).backward()
-            scaler.step(optimizer)
-            scaler.update()
-
-            loop.set_postfix(loss=loss_fn.show(), epoch=epoch_idx)
-        loop.close()
-        return loss_fn.loss_avg, self.test_model(val_dataloader, metric_fn)
-
-    def test_model(self, dataloader, metric_fn):
-        self.eval()
-        device = next(self.parameters()).device
-
-        loss_fn = CTCLossFunction(blank=self.blank)
-        loop = tqdm(dataloader, position=0, leave=True)
-
-        for _, tensors in enumerate(loop):
-            valid_lengths, waveform, target_lengths, utterance = tensors_to_device(tensors, device)
-
-            with torch.no_grad():
-                log_probs, encoded_len, greedy_predictions = self.forward(waveform, valid_lengths)
-                loss_fn(log_probs.permute(1, 0, 2), utterance, encoded_len, target_lengths)
-
-                transcriptions = self.ctc_decoder_predictions_tensor(greedy_predictions, predictions_len=encoded_len)
-
-            metric_fn(tensor_to_string(utterance, target_lengths, self.labels), transcriptions)
-
-            loop.set_postfix(loss=loss_fn.show())
-        loop.close()
-        return loss_fn.loss_avg
 
     def inference(self, input_value, input_value_length):
         self.eval()
@@ -123,66 +69,17 @@ class QuartzNet(nn.Module):
 
 
 class Wav2Vec2(nn.Module):
-    def __init__(self, model, tokenizer, labels, blank):
+    def __init__(self, model, tokenizer):
         super(Wav2Vec2, self).__init__()
 
         self.model = model
         self.tokenizer = tokenizer
-
-        self.labels = labels
-        self.blank = blank
 
     def forward(self, waveform, valid_lengths=None):
         return self.model(waveform, valid_lengths)
 
     def decode(self, prediction):
         return self.tokenizer.decode(prediction)
-
-    def train_model(self, train_dataloader, val_dataloader, metric_fn, optimizer, scaler, epoch_idx):
-        self.train()
-        device = next(self.parameters()).device
-
-        loss_fn = CTCLossFunction(blank=self.blank)
-        loop = tqdm(train_dataloader, position=0, leave=True)
-
-        for batch_idx, tensors in enumerate(loop):
-            valid_lengths, waveform, target_lengths, utterance = tensors_to_device(tensors, device)
-
-            predictions, input_lengths = self.forward(waveform, valid_lengths)
-            input_lengths = input_lengths.clamp_max(predictions.shape[1])
-            loss = loss_fn(F.log_softmax(predictions, dim=2).permute(1, 0, 2), utterance, input_lengths, target_lengths)
-
-            optimizer.zero_grad()
-            scaler.scale(loss).backward()
-            scaler.step(optimizer)
-            scaler.update()
-
-            loop.set_postfix(loss=loss_fn.show(), epoch=epoch_idx)
-        loop.close()
-        return loss_fn.loss_avg, self.test_model(val_dataloader, metric_fn)
-
-    def test_model(self, dataloader, metric_fn):
-        self.eval()
-        device = next(self.parameters()).device
-
-        loss_fn = CTCLossFunction(blank=self.blank)
-        loop = tqdm(dataloader, position=0, leave=True)
-
-        for batch_idx, tensors in enumerate(loop):
-            valid_lengths, waveform, target_lengths, utterance = tensors_to_device(tensors, device)
-
-            with torch.no_grad():
-                predictions, input_lengths = self.forward(waveform, valid_lengths)
-                loss = loss_fn(F.log_softmax(predictions, dim=2).permute(1, 0, 2), utterance, input_lengths, target_lengths)
-
-                predicted_ids = torch.argmax(predictions, dim=-1)
-                transcriptions = [self.decode(p) for p in predicted_ids]
-
-            metric_fn(tensor_to_string(utterance, target_lengths, self.labels), transcriptions)
-
-            loop.set_postfix(loss=loss_fn.show(), epoch=0)
-        loop.close()
-        return loss_fn.loss_avg
 
     def inference(self, input_value):
         self.eval()
