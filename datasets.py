@@ -67,7 +67,7 @@ class LibriSpeechBookDataset(torchaudio.datasets.LIBRISPEECH):
         names = ["BOOK ID", "BOOK TITLE"]
         converters = {"BOOK ID": str.strip, "BOOK TITLE": str.strip}
         books = os.path.join(root, folder_in_archive, "BOOKS.TXT")
-        dfp = pd.read_csv(books, delimiter='|', comment=';', names=names, converters=converters, usecols=names)
+        dfp = pd.read_csv(books, delimiter='|', comment=';', names=names, converters=converters, usecols=names, lineterminator='\n')
         df = pd.merge(df, dfp, how="inner", on="BOOK ID")
 
         self._walker = df
